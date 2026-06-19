@@ -65,6 +65,8 @@ const formatDate = (date) => {
   }).format(new Date(date))
 }
 
+const normalizeValue = (value) => String(value || '').trim().toLowerCase()
+
 function EmployeeForm({
   departments,
   formData,
@@ -204,9 +206,6 @@ function EmployeeForm({
 
 function Employees() {
   const { session, userRole, userEmployeeId } = useAuth()
-  const normalizedUserRole = userRole?.toLowerCase()
-  const isAdmin = normalizedUserRole === 'admin'
-  const isManager = normalizedUserRole === 'manager'
 
   const [employees, setEmployees] = useState([])
   const [departments, setDepartments] = useState([])
@@ -222,6 +221,31 @@ function Employees() {
   const [deleteLoading, setDeleteLoading] = useState(false)
   const [showFilters, setShowFilters] = useState(false)
   const [filters, setFilters] = useState(initialFilterState)
+  const signedInEmail = normalizeValue(session?.user?.email)
+  const signedInUserId = normalizeValue(session?.user?.id)
+  const signedInEmployeeId = normalizeValue(userEmployeeId)
+
+  const currentEmployee = useMemo(
+    () =>
+      employees.find((employee) => {
+        const employeeEmail = normalizeValue(employee.email)
+        const employeeRowId = normalizeValue(employee.id)
+        const employeeCode = normalizeValue(employee.employee_id)
+
+        return (
+          employeeEmail === signedInEmail ||
+          employeeRowId === signedInEmployeeId ||
+          employeeCode === signedInEmployeeId ||
+          employeeRowId === signedInUserId ||
+          employeeCode === signedInUserId
+        )
+      }),
+    [employees, signedInEmail, signedInEmployeeId, signedInUserId],
+  )
+
+  const effectiveUserRole = normalizeValue(userRole || currentEmployee?.role)
+  const isAdmin = effectiveUserRole === 'admin'
+  const isManager = effectiveUserRole === 'manager'
 
   const loadEmployeesPageData = async () => {
     try {
@@ -274,17 +298,21 @@ function Employees() {
   }, [])
 
   const visibleEmployees = useMemo(() => {
-    const signedInEmail = session?.user?.email?.toLowerCase()
-
     if (isAdmin) {
       return employees
     }
 
     return employees.filter((employee) => {
-      const employeeRole = employee.role?.toLowerCase()
+      const employeeRole = normalizeValue(employee.role)
+      const employeeEmail = normalizeValue(employee.email)
+      const employeeRowId = normalizeValue(employee.id)
+      const employeeCode = normalizeValue(employee.employee_id)
       const isSelf =
-        employee.email?.toLowerCase() === signedInEmail ||
-        employee.employee_id === userEmployeeId
+        employeeEmail === signedInEmail ||
+        employeeRowId === signedInEmployeeId ||
+        employeeCode === signedInEmployeeId ||
+        employeeRowId === signedInUserId ||
+        employeeCode === signedInUserId
 
       if (isManager) {
         return isSelf || employeeRole === 'employee'
@@ -292,7 +320,7 @@ function Employees() {
 
       return isSelf
     })
-  }, [employees, isAdmin, isManager, session?.user?.email, userEmployeeId])
+  }, [employees, isAdmin, isManager, signedInEmail, signedInEmployeeId, signedInUserId])
 
   const filteredEmployees = useMemo(() => {
     const query = searchQuery.trim().toLowerCase()
