@@ -243,7 +243,9 @@ function Employees() {
     [employees, signedInEmail, signedInEmployeeId, signedInUserId],
   )
 
-  const effectiveUserRole = normalizeValue(userRole || currentEmployee?.role)
+  const currentEmployeeId = normalizeValue(currentEmployee?.id)
+  const currentEmployeeCode = normalizeValue(currentEmployee?.employee_id)
+  const effectiveUserRole = normalizeValue(currentEmployee?.role || userRole)
   const isAdmin = effectiveUserRole === 'admin'
   const isManager = effectiveUserRole === 'manager'
 
@@ -308,6 +310,8 @@ function Employees() {
       const employeeRowId = normalizeValue(employee.id)
       const employeeCode = normalizeValue(employee.employee_id)
       const isSelf =
+        employeeRowId === currentEmployeeId ||
+        employeeCode === currentEmployeeCode ||
         employeeEmail === signedInEmail ||
         employeeRowId === signedInEmployeeId ||
         employeeCode === signedInEmployeeId ||
@@ -320,7 +324,16 @@ function Employees() {
 
       return isSelf
     })
-  }, [employees, isAdmin, isManager, signedInEmail, signedInEmployeeId, signedInUserId])
+  }, [
+    currentEmployeeCode,
+    currentEmployeeId,
+    employees,
+    isAdmin,
+    isManager,
+    signedInEmail,
+    signedInEmployeeId,
+    signedInUserId,
+  ])
 
   const filteredEmployees = useMemo(() => {
     const query = searchQuery.trim().toLowerCase()
