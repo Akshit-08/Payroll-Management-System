@@ -59,3 +59,14 @@ export async function getAllDepartments() {
   if (error) throw error
   return data
 }
+
+export async function getEmployeeByEmail(email) {
+  const { data, error } = await supabase
+    .from('employees')
+    .select('*')
+    .eq('email', email)
+    .maybeSingle()
+
+  if (error) throw error
+  return data
+}
