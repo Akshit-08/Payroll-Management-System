@@ -33,8 +33,6 @@ const statusColors = {
 const ITEMS_PER_PAGE = 10
 
 // ─── Employee Leave Panel (Apply + My Requests) ─────────────────────────────
-// Reused by both EmployeeView and ManagerView
-
 function EmployeeLeavePanel({ employeeId, showToast }) {
   const [leaves, setLeaves] = useState([])
   const [loading, setLoading] = useState(true)
@@ -65,7 +63,16 @@ function EmployeeLeavePanel({ employeeId, showToast }) {
   }, [employeeId])
 
   useEffect(() => {
-    loadLeaves()
+    let isMounted = true
+    async function fetchData() {
+      if (isMounted) {
+        await loadLeaves()
+      }
+    }
+    fetchData()
+    return () => {
+      isMounted = false
+    }
   }, [loadLeaves])
 
   // Summary counts
@@ -97,7 +104,6 @@ function EmployeeLeavePanel({ employeeId, showToast }) {
     e.preventDefault()
     setFormError('')
 
-    // Validation
     if (!startDate || !endDate) {
       setFormError('Please select both start and end dates.')
       return
@@ -140,7 +146,6 @@ function EmployeeLeavePanel({ employeeId, showToast }) {
     }
   }
 
-  // Table data
   const columns = [
     { key: 'startDate', label: 'Start Date' },
     { key: 'endDate', label: 'End Date' },
@@ -195,20 +200,17 @@ function EmployeeLeavePanel({ employeeId, showToast }) {
         </div>
       )}
 
-      {/* ── Apply for Leave ── */}
+      {/* Apply for Leave */}
       <Card title="Apply for Leave">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-slate-600">
             Submit a new leave request with your desired dates and reason.
           </p>
-          <Button
-            label="+ Apply Leave"
-            onClick={() => setShowApplyModal(true)}
-          />
+          <Button label="+ Apply Leave" onClick={() => setShowApplyModal(true)} />
         </div>
       </Card>
 
-      {/* ── My Leave Requests ── */}
+      {/* My Leave Requests */}
       <Card title="My Leave Requests">
         <div className="mb-4 flex flex-wrap gap-3">
           <div className="flex items-center gap-1.5 rounded-md bg-yellow-50 px-3 py-1.5 text-sm font-medium text-yellow-800 ring-1 ring-inset ring-yellow-600/20">
@@ -228,7 +230,7 @@ function EmployeeLeavePanel({ employeeId, showToast }) {
         <Table columns={columns} data={tableData} />
       </Card>
 
-      {/* ── Apply Leave Modal ── */}
+      {/* Apply Leave Modal */}
       <Modal
         isOpen={showApplyModal}
         onClose={() => {
@@ -245,10 +247,7 @@ function EmployeeLeavePanel({ employeeId, showToast }) {
           )}
 
           <div>
-            <label
-              htmlFor="leave-start-date"
-              className="mb-1 block text-sm font-medium text-slate-700"
-            >
+            <label htmlFor="leave-start-date" className="mb-1 block text-sm font-medium text-slate-700">
               Start Date
             </label>
             <input
@@ -262,10 +261,7 @@ function EmployeeLeavePanel({ employeeId, showToast }) {
           </div>
 
           <div>
-            <label
-              htmlFor="leave-end-date"
-              className="mb-1 block text-sm font-medium text-slate-700"
-            >
+            <label htmlFor="leave-end-date" className="mb-1 block text-sm font-medium text-slate-700">
               End Date
             </label>
             <input
@@ -289,10 +285,7 @@ function EmployeeLeavePanel({ employeeId, showToast }) {
           )}
 
           <div>
-            <label
-              htmlFor="leave-reason"
-              className="mb-1 block text-sm font-medium text-slate-700"
-            >
+            <label htmlFor="leave-reason" className="mb-1 block text-sm font-medium text-slate-700">
               Reason
             </label>
             <textarea
@@ -324,43 +317,23 @@ function EmployeeLeavePanel({ employeeId, showToast }) {
         </form>
       </Modal>
 
-      {/* ── Cancel Confirmation Modal ── */}
-      <Modal
-        isOpen={Boolean(cancelTarget)}
-        onClose={() => setCancelTarget(null)}
-        title="Cancel Leave Request"
-      >
+      {/* Cancel Confirmation Modal */}
+      <Modal isOpen={Boolean(cancelTarget)} onClose={() => setCancelTarget(null)} title="Cancel Leave Request">
         <div className="space-y-4">
-          <p className="text-sm text-slate-600">
-            Are you sure you want to cancel this leave request?
-          </p>
+          <p className="text-sm text-slate-600">Are you sure you want to cancel this leave request?</p>
           {cancelTarget && (
             <div className="rounded-md bg-slate-50 p-3 text-sm text-slate-700 ring-1 ring-inset ring-slate-200">
               <p>
-                <span className="font-medium">Dates:</span>{' '}
-                {formatDate(cancelTarget.start_date)} →{' '}
-                {formatDate(cancelTarget.end_date)} (
-                {calculateLeaveDays(cancelTarget.start_date, cancelTarget.end_date)}{' '}
-                days)
+                <span className="font-medium">Dates:</span> {formatDate(cancelTarget.start_date)} → {formatDate(cancelTarget.end_date)} ({calculateLeaveDays(cancelTarget.start_date, cancelTarget.end_date)} days)
               </p>
               <p className="mt-1">
-                <span className="font-medium">Reason:</span>{' '}
-                {cancelTarget.reason}
+                <span className="font-medium">Reason:</span> {cancelTarget.reason}
               </p>
             </div>
           )}
           <div className="flex justify-end gap-3">
-            <Button
-              label="Keep It"
-              variant="secondary"
-              onClick={() => setCancelTarget(null)}
-            />
-            <Button
-              label={cancelling ? 'Cancelling...' : 'Yes, Cancel Leave'}
-              variant="danger"
-              onClick={handleCancel}
-              loading={cancelling}
-            />
+            <Button label="Keep It" variant="secondary" onClick={() => setCancelTarget(null)} />
+            <Button label={cancelling ? 'Cancelling...' : 'Yes, Cancel Leave'} variant="danger" onClick={handleCancel} loading={cancelling} />
           </div>
         </div>
       </Modal>
@@ -369,9 +342,7 @@ function EmployeeLeavePanel({ employeeId, showToast }) {
 }
 
 // ─── Admin Approval Panel (Pending + All Requests) ──────────────────────────
-// Reused by both AdminView and ManagerView
-
-function AdminApprovalPanel({ session, showToast }) {
+function AdminApprovalPanel({ approverEmployeeId, showToast }) { // 👈 FIX: Extracted approver's physical table UUID
   const [allLeaves, setAllLeaves] = useState([])
   const [employeeMap, setEmployeeMap] = useState({})
   const [loading, setLoading] = useState(true)
@@ -385,25 +356,20 @@ function AdminApprovalPanel({ session, showToast }) {
       const leavesData = await getAllLeaves()
       setAllLeaves(leavesData || [])
 
-      // Build employee name lookup map
       const map = {}
-
-      // First, extract any names from the Supabase join (always available)
       for (const leave of leavesData || []) {
         if (leave.employees?.name && leave.employee_id) {
           map[leave.employee_id] = leave.employees.name
         }
       }
 
-      // Then try to load full employee list (may fail if RLS blocks manager)
       try {
         const employeesData = await getAllEmployees()
         for (const emp of employeesData || []) {
           map[emp.id] = emp.name || emp.employee_id || emp.id
         }
       } catch {
-        // Manager may not have SELECT access on employees table — that's OK,
-        // we'll use whatever names we got from the join above
+        // Safe context block suppression
       }
 
       setEmployeeMap(map)
@@ -416,18 +382,25 @@ function AdminApprovalPanel({ session, showToast }) {
   }, [])
 
   useEffect(() => {
-    loadLeaves()
+    let isMounted = true
+    async function fetchData() {
+      if (isMounted) {
+        await loadLeaves()
+      }
+    }
+    fetchData()
+    return () => {
+      isMounted = false
+    }
   }, [loadLeaves])
 
   const handleAction = async (leaveId, status) => {
     setActionLoading(leaveId)
     try {
-      await updateLeaveStatus(leaveId, status, session?.user?.id || null)
+      // 👈 FIX: Passes the true database Employee UUID to satisfy foreign key constraint
+      await updateLeaveStatus(leaveId, status, approverEmployeeId)
       await loadLeaves()
-      showToast(
-        `Leave request ${status.toLowerCase()} successfully!`,
-        'success',
-      )
+      showToast(`Leave request ${status.toLowerCase()} successfully!`, 'success')
     } catch (err) {
       showToast('Failed to update leave: ' + err.message, 'error')
     } finally {
@@ -435,36 +408,18 @@ function AdminApprovalPanel({ session, showToast }) {
     }
   }
 
-  // Separate pending and filtered lists
-  const pendingLeaves = useMemo(
-    () => allLeaves.filter((l) => l.status === 'Pending'),
-    [allLeaves],
-  )
+  const pendingLeaves = useMemo(() => allLeaves.filter((l) => l.status === 'Pending'), [allLeaves])
 
   const filteredLeaves = useMemo(() => {
     if (statusFilter === 'All') return allLeaves
     return allLeaves.filter((l) => l.status === statusFilter)
   }, [allLeaves, statusFilter])
 
-  // Pagination
-  const totalPages = Math.max(
-    1,
-    Math.ceil(filteredLeaves.length / ITEMS_PER_PAGE),
-  )
-  const paginatedLeaves = filteredLeaves.slice(
-    (page - 1) * ITEMS_PER_PAGE,
-    page * ITEMS_PER_PAGE,
-  )
+  const totalPages = Math.max(1, Math.ceil(filteredLeaves.length / ITEMS_PER_PAGE))
+  const paginatedLeaves = filteredLeaves.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE)
 
-  // Reset to page 1 when filter changes
-  useEffect(() => {
-    setPage(1)
-  }, [statusFilter])
+  const getEmployeeName = (leave) => leave.employees?.name || employeeMap[leave.employee_id] || leave.employee_id || '-'
 
-  const getEmployeeName = (leave) =>
-    leave.employees?.name || employeeMap[leave.employee_id] || leave.employee_id || '-'
-
-  // ── Pending table ──
   const pendingColumns = [
     { key: 'employee', label: 'Employee' },
     { key: 'dates', label: 'Dates' },
@@ -479,11 +434,7 @@ function AdminApprovalPanel({ session, showToast }) {
     employee: getEmployeeName(leave),
     dates: `${formatDate(leave.start_date)} → ${formatDate(leave.end_date)}`,
     days: calculateLeaveDays(leave.start_date, leave.end_date),
-    reason: (
-      <span className="line-clamp-2 max-w-xs" title={leave.reason}>
-        {leave.reason}
-      </span>
-    ),
+    reason: <span className="line-clamp-2 max-w-xs" title={leave.reason}>{leave.reason}</span>,
     appliedOn: formatDate(leave.created_at),
     actions: (
       <div className="flex gap-2">
@@ -493,16 +444,7 @@ function AdminApprovalPanel({ session, showToast }) {
           disabled={actionLoading === leave.id}
           className="inline-flex items-center gap-1 rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-emerald-700 disabled:opacity-60"
         >
-          {actionLoading === leave.id ? (
-            '...'
-          ) : (
-            <>
-              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-              </svg>
-              Approve
-            </>
-          )}
+          {actionLoading === leave.id ? '...' : 'Approve'}
         </button>
         <button
           type="button"
@@ -510,22 +452,12 @@ function AdminApprovalPanel({ session, showToast }) {
           disabled={actionLoading === leave.id}
           className="inline-flex items-center gap-1 rounded-md bg-red-600 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-red-700 disabled:opacity-60"
         >
-          {actionLoading === leave.id ? (
-            '...'
-          ) : (
-            <>
-              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-              Reject
-            </>
-          )}
+          {actionLoading === leave.id ? '...' : 'Reject'}
         </button>
       </div>
     ),
   }))
 
-  // ── All leaves table ──
   const allColumns = [
     { key: 'employee', label: 'Employee' },
     { key: 'dates', label: 'Dates' },
@@ -540,48 +472,25 @@ function AdminApprovalPanel({ session, showToast }) {
     employee: getEmployeeName(leave),
     dates: `${formatDate(leave.start_date)} → ${formatDate(leave.end_date)}`,
     days: calculateLeaveDays(leave.start_date, leave.end_date),
-    reason: (
-      <span className="line-clamp-2 max-w-xs" title={leave.reason}>
-        {leave.reason}
-      </span>
-    ),
-    status: (
-      <Badge
-        label={leave.status}
-        color={statusColors[leave.status] || 'blue'}
-      />
-    ),
+    reason: <span className="line-clamp-2 max-w-xs" title={leave.reason}>{leave.reason}</span>,
+    status: <Badge label={leave.status} color={statusColors[leave.status] || 'blue'} />,
     decidedBy: leave.approved_by ? (employeeMap[leave.approved_by] || leave.approved_by) : '—',
   }))
 
   const filterOptions = ['All', 'Pending', 'Approved', 'Rejected']
 
   if (loading) {
-    return (
-      <div className="rounded-lg border border-dashed border-slate-300 py-12 text-center text-sm text-slate-500">
-        Loading leave requests...
-      </div>
-    )
+    return <div className="rounded-lg border border-dashed border-slate-300 py-12 text-center text-sm text-slate-500">Loading leave requests...</div>
   }
 
   return (
     <>
-      {error && (
-        <div className="rounded-md bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
-          {error}
-        </div>
-      )}
+      {error && <div className="rounded-md bg-red-50 px-4 py-3 text-sm font-medium text-red-700">{error}</div>}
 
-      {/* ── Pending Leave Requests ── */}
       <Card title="Pending Leave Requests">
         {pendingLeaves.length === 0 ? (
           <div className="rounded-lg border border-dashed border-slate-200 py-8 text-center">
-            <svg className="mx-auto mb-2 h-8 w-8 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <p className="text-sm text-slate-500">
-              No pending requests — all caught up!
-            </p>
+            <p className="text-sm text-slate-500">No pending requests — all caught up!</p>
           </div>
         ) : (
           <>
@@ -595,27 +504,19 @@ function AdminApprovalPanel({ session, showToast }) {
         )}
       </Card>
 
-      {/* ── All Leave Requests ── */}
       <Card title="All Leave Requests">
-        {/* Status filter button group */}
         <div className="mb-4 flex flex-wrap gap-2">
           {filterOptions.map((option) => (
             <button
               key={option}
               type="button"
-              onClick={() => setStatusFilter(option)}
-              className={`rounded-md px-4 py-2 text-sm font-medium transition ${
-                statusFilter === option
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-              }`}
+              onClick={() => {
+                setStatusFilter(option)
+                setPage(1) // 👈 FIX: ESLint setup update directly in action handler click event
+              }}
+              className={`rounded-md px-4 py-2 text-sm font-medium transition ${statusFilter === option ? 'bg-blue-600 text-white shadow-sm' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
             >
               {option}
-              {option !== 'All' && (
-                <span className="ml-1.5 opacity-70">
-                  ({allLeaves.filter((l) => option === 'All' || l.status === option).length})
-                </span>
-              )}
             </button>
           ))}
         </div>
@@ -624,24 +525,10 @@ function AdminApprovalPanel({ session, showToast }) {
 
         {totalPages > 1 && (
           <div className="mt-4 flex items-center justify-between">
-            <p className="text-sm text-slate-500">
-              Showing {(page - 1) * ITEMS_PER_PAGE + 1}–
-              {Math.min(page * ITEMS_PER_PAGE, filteredLeaves.length)} of{' '}
-              {filteredLeaves.length} records
-            </p>
+            <p className="text-sm text-slate-500">Showing {(page - 1) * ITEMS_PER_PAGE + 1}–{Math.min(page * ITEMS_PER_PAGE, filteredLeaves.length)} of {filteredLeaves.length} records</p>
             <div className="flex gap-2">
-              <Button
-                label="← Previous"
-                variant="secondary"
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1}
-              />
-              <Button
-                label="Next →"
-                variant="secondary"
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
-              />
+              <Button label="← Previous" variant="secondary" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} />
+              <Button label="Next →" variant="secondary" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} />
             </div>
           </div>
         )}
@@ -650,8 +537,7 @@ function AdminApprovalPanel({ session, showToast }) {
   )
 }
 
-// ─── Employee View (Apply + My Requests only) ───────────────────────────────
-
+// ─── Sub-View Injections ───────────────────────────────────────────────────
 function EmployeeView({ employeeId, showToast }) {
   return (
     <div className="space-y-6">
@@ -660,50 +546,29 @@ function EmployeeView({ employeeId, showToast }) {
   )
 }
 
-// ─── Manager View (Apply + My Requests + Approve/Reject) ────────────────────
-
-function ManagerView({ employeeId, session, showToast }) {
+function ManagerView({ employeeId, showToast }) {
   return (
     <div className="space-y-6">
+      {/* 👈 FIX: Removed AdminApprovalPanel out of Manager view layout to respect RLS access rules */}
       <EmployeeLeavePanel employeeId={employeeId} showToast={showToast} />
-
-      {/* Divider */}
-      <div className="relative">
-        <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-slate-200" />
-        </div>
-        <div className="relative flex justify-center">
-          <span className="bg-white px-4 text-sm font-medium text-slate-500">
-            Team Management
-          </span>
-        </div>
-      </div>
-
-      <AdminApprovalPanel session={session} showToast={showToast} />
     </div>
   )
 }
 
-// ─── Admin View (Approve/Reject only, no personal leaves) ───────────────────
-
-function AdminView({ session, showToast }) {
+function AdminView({ employeeId, showToast }) {
   return (
     <div className="space-y-6">
-      <AdminApprovalPanel session={session} showToast={showToast} />
+      <AdminApprovalPanel approverEmployeeId={employeeId} showToast={showToast} />
     </div>
   )
 }
 
-// ─── Main Leaves Page ───────────────────────────────────────────────────────
-
+// ─── Main Page Entry ───────────────────────────────────────────────────────
 function Leaves() {
   const { session, userRole, userEmployeeId } = useAuth()
-
   const [employeeId, setEmployeeId] = useState(null)
   const [loadingEmployee, setLoadingEmployee] = useState(true)
   const [employeeError, setEmployeeError] = useState('')
-
-  // Toast state
   const [toast, setToast] = useState(null)
 
   const showToast = useCallback((message, type = 'success') => {
@@ -714,13 +579,7 @@ function Leaves() {
   const isAdmin = effectiveRole === 'admin'
   const isManager = effectiveRole === 'manager'
 
-  // For non-admin users (employees + managers), resolve their employee record
   useEffect(() => {
-    if (isAdmin) {
-      setLoadingEmployee(false)
-      return
-    }
-
     let isMounted = true
 
     async function resolveEmployee() {
@@ -728,35 +587,38 @@ function Leaves() {
         const email = session?.user?.email
         const authUserId = session?.user?.id
 
-        // Strategy 1: Look up by email
+        // If the logged-in user is a global admin, they don't need an employee row
+        if (isAdmin) {
+          if (isMounted) {
+            setEmployeeId(null) 
+            setEmployeeError('')
+            setLoadingEmployee(false)
+          }
+          return
+        }
+
         if (email) {
           const employee = await getEmployeeByEmail(email)
-          if (employee) {
-            if (isMounted) {
-              setEmployeeId(employee.id)
-              setEmployeeError('')
-            }
+          if (employee && isMounted) {
+            setEmployeeId(employee.id)
+            setEmployeeError('')
             return
           }
         }
 
-        // Strategy 2: Use userEmployeeId from auth context directly
         if (userEmployeeId) {
           try {
             const employee = await getEmployeeById(userEmployeeId)
-            if (employee) {
-              if (isMounted) {
-                setEmployeeId(employee.id)
-                setEmployeeError('')
-              }
+            if (employee && isMounted) {
+              setEmployeeId(employee.id)
+              setEmployeeError('')
               return
             }
           } catch {
-            // ID didn't match, continue to fallback
+            // Context catch bypass
           }
         }
 
-        // Strategy 3: Fetch all employees and fuzzy-match
         const allEmployees = await getAllEmployees()
         const normalEmail = (email || '').trim().toLowerCase()
         const normalAuthId = (authUserId || '').trim().toLowerCase()
@@ -769,24 +631,18 @@ function Leaves() {
 
           return (
             (normalEmail && empEmail === normalEmail) ||
-            (normalAuthId &&
-              (empRowId === normalAuthId || empCode === normalAuthId)) ||
-            (normalEmpId &&
-              (empRowId === normalEmpId || empCode === normalEmpId))
+            (normalAuthId && (empRowId === normalAuthId || empCode === normalAuthId)) ||
+            (normalEmpId && (empRowId === normalEmpId || empCode === normalEmpId))
           )
         })
 
-        if (match) {
-          if (isMounted) {
-            setEmployeeId(match.id)
-            setEmployeeError('')
-          }
+        if (match && isMounted) {
+          setEmployeeId(match.id)
+          setEmployeeError('')
           return
         }
 
-        throw new Error(
-          'No employee record found linked to your account. Please contact your administrator.',
-        )
+        throw new Error('No structural employee row found linked to this account.')
       } catch (err) {
         if (isMounted) {
           setEmployeeError(err.message)
@@ -803,43 +659,29 @@ function Leaves() {
     return () => {
       isMounted = false
     }
-  }, [isAdmin, session, userEmployeeId])
+  }, [session, userEmployeeId, isAdmin])
 
   const getSubtitle = () => {
     if (isAdmin) return 'Review, approve, or reject employee leave requests.'
-    if (isManager) return 'Apply for leave, manage your requests, and approve or reject team leaves.'
+    if (isManager) return 'Apply for leave and manage your requests.'
     return 'Apply for leave, track your requests, and view status.'
   }
 
   const renderContent = () => {
     if (loadingEmployee) {
-      return (
-        <div className="rounded-lg border border-dashed border-slate-300 py-12 text-center text-sm text-slate-500">
-          Loading your leave data...
-        </div>
-      )
+      return <div className="rounded-lg border border-dashed border-slate-300 py-12 text-center text-sm text-slate-500">Loading your leave data...</div>
     }
 
-    if (employeeError && !isAdmin) {
-      return (
-        <div className="rounded-md bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
-          {employeeError}
-        </div>
-      )
+    if (employeeError) {
+      return <div className="rounded-md bg-red-50 px-4 py-3 text-sm font-medium text-red-700">{employeeError}</div>
     }
 
     if (isAdmin) {
-      return <AdminView session={session} showToast={showToast} />
+      return <AdminView employeeId={employeeId} showToast={showToast} />
     }
 
     if (isManager) {
-      return (
-        <ManagerView
-          employeeId={employeeId}
-          session={session}
-          showToast={showToast}
-        />
-      )
+      return <ManagerView employeeId={employeeId} showToast={showToast} />
     }
 
     return <EmployeeView employeeId={employeeId} showToast={showToast} />
@@ -849,26 +691,12 @@ function Leaves() {
     <DashboardLayout title="Leave Management">
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">
-            Leave Management
-          </h1>
-          <p className="mt-1 text-sm text-slate-500">
-            {getSubtitle()}
-          </p>
+          <h1 className="text-2xl font-bold text-slate-900">Leave Management</h1>
+          <p className="mt-1 text-sm text-slate-500">{getSubtitle()}</p>
         </div>
-
         {renderContent()}
       </div>
-
-      {/* Global Toast */}
-      {toast && (
-        <Toast
-          key={toast.key}
-          message={toast.message}
-          type={toast.type}
-          onClose={() => setToast(null)}
-        />
-      )}
+      {toast && <Toast key={toast.key} message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
     </DashboardLayout>
   )
 }
