@@ -12,6 +12,11 @@ const navItems = [
   { label: 'Profile', path: '/profile' },
 ]
 
+const settingsNavItems = [
+  { label: 'Roles', path: '/roles', icon: '🛡️' },
+  { label: 'Permissions', path: '/permissions', icon: '🔑' },
+]
+
 function DashboardLayout({ title, children }) {
   const navigate = useNavigate()
   const [userLabel, setUserLabel] = useState('User')
@@ -55,6 +60,29 @@ function DashboardLayout({ title, children }) {
               {item.label}
             </NavLink>
           ))}
+
+          {/* Settings Section */}
+          <div className="pt-4 mt-4 border-t border-white/10">
+            <p className="px-3 mb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
+              SETTINGS
+            </p>
+            {settingsNavItems.map((item) => (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition ${
+                    isActive
+                      ? 'bg-white text-slate-900'
+                      : 'text-slate-200 hover:bg-white/10 hover:text-white'
+                  }`
+                }
+              >
+                <span className="text-base">{item.icon}</span>
+                {item.label}
+              </NavLink>
+            ))}
+          </div>
         </nav>
 
         <div className="border-t border-white/10 p-4">
